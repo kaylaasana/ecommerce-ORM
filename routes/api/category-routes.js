@@ -37,60 +37,59 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', (req, res) => {
+router.post('/', async (req, res) => {
   // create a new category
-  Category.create(req.body)
-    .then((category) => {
-      if (req.body.id.length) {
-        const categoryIdArr = req.body.id.map((category_id) => {
-          return {
-            category_id: category_id,
-          };
-        });
-        return Category.bulkCreate(categoryIdArr);
-      }
-      res.status(200).json(category);
-    })
-    .then((categoryID) => res.status(200).json(categoryID))
-    .catch((err) => {
-      console.log(err);
-      res.status(400).json(err);
-    });
+  try {
+    const newCategory = await Category.create(req.body)
+    res.status(200).json(newCategory)
+  } catch (err){
+    res.status(500).json(err);
+  }
 });
 
 router.put('/:id', (req, res) => {
   // update a category by its `id` value
-  Category.update(req.body, {
-    where: {
-      id: req.params.id,
+  Category.update(
+    {
+      category_name: req.body.category_name,
     },
-  })
-    .then((category) => {
-      if (req.body.id && req.body.id.length) {
-        
-        Category.findAll({
-          where: { category_id: req.params.id }
-        }).then((categoryParam) => {
-          const categoryId = categoryParam.map(({ category_id }) => category_id);
-          const newcategoryId = req.body.id
-          .filter((category_id) => !categoryId.includes(category_id))
-          .map((category_id) => {
-            return {
-              product_id: req.params.id,
-              category_id,
-            };
-          });
-          const categoriesToRemove = categoryParam
-          .filter(({ category_id }) => !req.body.id.includes(category_id))
-          .map(({ id }) => id);
-          return Promise.all([
-            Category.destroy({ where: { id: categoriesToRemove } }),
-            Category.bulkCreate(newcategoryId),
-          ]);
+    {
+      where: {
+        id: req.params.id,
+      },
+    }
+  )
+  .then((product) => {
+    if (req.body.id && req.body.id.length) {
+      
+      Product.findAll({
+        where: { product_id: req.params.id }
+      }).then((product) => {
+
+        const productIds = product.map(({ id }) => id);
+        const newProduct = req.body.id
+        .filter((id) => !productIds.includes(id))
+        .map((id) => {
+          return {
+            product_id: req.params.id,
+            id,
+          };
         });
-      }
-      return res.json(category);
-    })
+
+          // figure out which ones to remove
+        const productsToRemove = product
+        .filter(({ id }) => !req.body.id.includes(id))
+        .map(({ id }) => id);
+                // run both actions
+        return Promise.all([
+          Product.destroy({ where: { id: productsToRemove } }),
+          Product.bulkCreate(newProduct),
+        ]);
+      });
+    }
+
+    return res.json(product);
+  })
     .catch((err) => {
       res.status(400).json(err);
     });

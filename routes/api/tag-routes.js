@@ -40,26 +40,15 @@ router.get('/:id', async (req, res) => {
 
 router.post('/', async (req, res) => {
   // create a new tag
-  Tag.create(req.body)
-  .then((productTag) => {
-    if (req.body.id.length) {
-      const tagIdArr = req.body.id.map((tag_id) => {
-        return {
-          tag_id: productTag.id,
-        };
-      });
-      return Tag.bulkCreate(tagIdArr);
-    }
-    res.status(200).json(productTag);
-  })
-  .then((tagIds) => res.status(200).json(tagIds))
-  .catch((err) => {
-    console.log(err);
-    res.status(400).json(err);
-  });
+  try {
+    const newTag = await Tag.create(req.body)
+    res.status(200).json(newTag)
+  } catch (err){
+    res.status(500).json(err);
+  }
 });
 
-router.put('/:id', async (req, res) => {
+router.put('/:id', (req, res) => {
   // update a tag's name by its `id` value
   Tag.update(req.body, {
     where: {
